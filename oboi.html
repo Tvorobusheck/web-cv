@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор обоев</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e9f7ef;
+      border-radius: 4px;
+      display: none;
+    }
+    .result.visible {
+      display: block;
+    }
+    .mode-selector {
+      display: flex;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .mode-option {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+    }
+    .mode-option.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .explanation {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+    .room-dimensions {
+      display: flex;
+      gap: 15px;
+    }
+    .room-dimensions .form-group {
+      flex: 1;
+    }
+    .test-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .test-case {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <h1>Калькулятор обоев</h1>
+      
+      <div class="mode-selector">
+        <div 
+          class="mode-option" 
+          :class="{active: mode === 'without'}"
+          @click="mode = 'without'"
+        >
+          Без раппорта
+        </div>
+        <div 
+          class="mode-option" 
+          :class="{active: mode === 'with'}"
+          @click="mode = 'with'"
+        >
+          С раппортом
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="wall-height">Высота стены (м):</label>
+        <input 
+          type="number" 
+          id="wall-height" 
+          v-model.number="wallHeight" 
+          min="0.1" 
+          step="0.01"
+          placeholder="Например, 2.75"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="roll-width">Ширина рулона (м):</label>
+        <input 
+          type="number" 
+          id="roll-width" 
+          v-model.number="rollWidth" 
+          min="0.1" 
+          step="0.01"
+          placeholder="Например, 0.53"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="roll-length">Длина рулона (м):</label>
+        <input 
+          type="number" 
+          id="roll-length" 
+          v-model.number="rollLength" 
+          min="1" 
+          step="0.1"
+          placeholder="Например, 10.05"
+        >
+      </div>
+      
+      <div class="form-group" v-if="mode === 'with'">
+        <label for="rapport">Раппорт (см):</label>
+        <input 
+          type="number" 
+          id="rapport" 
+          v-model.number="rapport" 
+          min="1" 
+          step="1"
+          placeholder="Например, 64"
+        >
+      </div>
+      
+      <div class="form-group" v-if="mode === 'with'">
+        <label for="offset">Смещение рисунка (см):</label>
+        <input 
+          type="number" 
+          id="offset" 
+          v-model.number="offset" 
+          min="0" 
+          step="1"
+          placeholder="Например, 0"
+        >
+      </div>
+      
+      <div class="room-dimensions">
+        <div class="form-group">
+          <label for="room-width">Ширина комнаты (м):</label>
+          <input 
+            type="number" 
+            id="room-width" 
+            v-model.number="roomWidth" 
+            min="1" 
+            step="0.1"
+            placeholder="Например, 4.5"
+          >
+        </div>
+        <div class="form-group">
+          <label for="room-length">Длина комнаты (м):</label>
+          <input 
+            type="number" 
+            id="room-length" 
+            v-model.number="roomLength" 
+            min="1" 
+            step="0.1"
+            placeholder="Например, 5.2"
+          >
+        </div>
+      </div>
+      
+      <button @click="calculate">Рассчитать</button>
+      
+      <div class="result" :class="{visible: showResult}">
+        <h3>Результат:</h3>
+        <p v-if="mode === 'without'">
+          Периметр комнаты: <strong>{{ roomPerimeter }} м</strong><br>
+          Количество полос с одного рулона: <strong>{{ stripsPerRoll }}</strong><br>
+          Всего нужно полос: <strong>{{ totalStripsNeeded }}</strong><br>
+          Необходимое количество рулонов: <strong>{{ rollsNeeded }}</strong>
+        </p>
+        <p v-else>
+          Периметр комнаты: <strong>{{ roomPerimeter }} м</strong><br>
+          Количество полос с одного рулона (с учетом раппорта): <strong>{{ stripsPerRoll }}</strong><br>
+          Всего нужно полос: <strong>{{ totalStripsNeeded }}</strong><br>
+          Необходимое количество рулонов: <strong>{{ rollsNeeded }}</strong>
+        </p>
+      </div>
+      
+      <div class="explanation">
+        <p v-if="mode === 'without'">
+          <strong>Режим без раппорта:</strong> используется для обоев без повторяющегося рисунка, где каждую следующую полосу можно клеить без подгонки.
+        </p>
+        <p v-else>
+          <strong>Режим с раппортом:</strong> используется для обоев с повторяющимся рисунком. Раппорт - это высота повторяющегося рисунка, а смещение - на сколько нужно сдвигать рисунок на следующей полосе (0 означает, что рисунок совпадает без смещения).
+        </p>
+      </div>
+      
+      <div v-if="showTests" class="test-section">
+        <h3>Тесты:</h3>
+        <div v-for="(test, index) in testCases" :key="index" class="test-case">
+          <p>
+            <strong>Тест {{ index + 1 }}:</strong> {{ test.description }}<br>
+            Ожидаемый результат: {{ test.expected }}<br>
+            Фактический результат: {{ test.actual }}<br>
+            <span :style="{color: test.passed ? 'green' : 'red'}">
+              {{ test.passed ? 'Пройден' : 'Не пройден' }}
+            </span>
+          </p>
+        </div>
+      </div>
+      
+      <button @click="runTests">Запустить тесты</button>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+    
+    createApp({
+      setup() {
+        const mode = ref('without'); // 'without' или 'with'
+        const wallHeight = ref(2.75);
+        const rollWidth = ref(0.53);
+        const rollLength = ref(10.05);
+        const rapport = ref(64);
+        const offset = ref(0);
+        const roomWidth = ref(4.5);
+        const roomLength = ref(5.2);
+        const showResult = ref(false);
+        const showTests = ref(false);
+        const testCases = ref([]);
+        
+        const roomPerimeter = computed(() => {
+          return (roomWidth.value + roomLength.value) * 2;
+        });
+        
+        const stripsPerRoll = computed(() => {
+          if (mode.value === 'without') {
+            // Формула без раппорта
+            return Math.floor(rollLength.value / wallHeight.value);
+          } else {
+            // Формула с раппортом без смещения
+            const rapportMeters = rapport.value / 100;
+            const stripsPerWall = Math.ceil(wallHeight.value / rapportMeters) * rapportMeters;
+            return Math.floor(rollLength.value / stripsPerWall);
+          }
+        });
+
+        const totalStripsNeeded = computed(() => {
+          if (mode.value === 'without') {
+            // Формула без раппорта
+            return Math.ceil(roomPerimeter.value / rollWidth.value);
+          } else {
+            // Формула с раппортом
+            const stripsForLengthWalls = Math.ceil(roomLength.value / rollWidth.value) * 2;
+            const stripsForWidthWalls = Math.ceil(roomWidth.value / rollWidth.value) * 2;
+            return stripsForLengthWalls + stripsForWidthWalls;
+          }
+        });
+
+        const rollsNeeded = computed(() => {
+          if (mode.value === 'without') {
+            // Формула без раппорта
+            return Math.ceil((2 * (roomLength.value + roomWidth.value) * wallHeight.value) / (rollWidth.value * rollLength.value));
+          } else {
+            // Формула с раппортом с учетом коэффициента
+            const baseRolls = (2 * (roomLength.value + roomWidth.value) * wallHeight.value) / (rollWidth.value * rollLength.value);
+            const adjustmentFactor = (2 * (roomLength.value + roomWidth.value) / rollWidth.value) * 0.5 / rollLength.value;
+            return Math.ceil(baseRolls + adjustmentFactor);
+          }
+        });
+        
+        const calculate = () => {
+          showResult.value = true;
+        };
+
+        const runTests = () => {
+          const tests = [
+            {
+              description: 'Без раппорта, периметр 20 м, высота стены 2.75 м, ширина рулона 0.53 м, длина рулона 10.05 м',
+              setup: () => {
+                mode.value = 'without';
+                roomWidth.value = 5;
+                roomLength.value = 5;
+                wallHeight.value = 2.75;
+                rollWidth.value = 0.53;
+                rollLength.value = 10.05;
+              },
+              expected: {
+                roomPerimeter: 20,
+                stripsPerRoll: 3,
+                totalStripsNeeded: 38,
+                rollsNeeded: 11
+              }
+            },
+            {
+              description: 'С раппортом, периметр 20 м, высота стены 2.75 м, ширина рулона 0.53 м, длина рулона 10.05 м, раппорт 64 см, смещение 0 см',
+              setup: () => {
+                mode.value = 'with';
+                roomWidth.value = 5;
+                roomLength.value = 5;
+                wallHeight.value = 2.75;
+                rollWidth.value = 0.53;
+                rollLength.value = 10.05;
+                rapport.value = 64;
+                offset.value = 0;
+              },
+              expected: {
+                roomPerimeter: 20,
+                stripsPerRoll: 2,
+                totalStripsNeeded: 38,
+                rollsNeeded: 20
+              }
+            },
+            {
+              description: 'Без раппорта, периметр 16 м, высота стены 3 м, ширина рулона 0.53 м, длина рулона 10 м',
+              setup: () => {
+                mode.value = 'without';
+                roomWidth.value = 4;
+                roomLength.value = 4;
+                wallHeight.value = 3;
+                rollWidth.value = 0.53;
+                rollLength.value = 10;
+              },
+              expected: {
+                roomPerimeter: 16,
+                stripsPerRoll: 3,
+                totalStripsNeeded: 31,
+                rollsNeeded: 10
+              }
+            },
+            {
+              description: 'С раппортом, периметр 16 м, высота стены 3 м, ширина рулона 0.53 м, длина рулона 10 м, раппорт 50 см, смещение 10 см',
+              setup: () => {
+                mode.value = 'with';
+                roomWidth.value = 4;
+                roomLength.value = 4;
+                wallHeight.value = 3;
+                rollWidth.value = 0.53;
+                rollLength.value = 10;
+                rapport.value = 50;
+                offset.value = 10;
+              },
+              expected: {
+                roomPerimeter: 16,
+                stripsPerRoll: 2,
+                totalStripsNeeded: 31,
+                rollsNeeded: 16
+              }
+            },
+            {
+              description: 'Без раппорта, периметр 24 м, высота стены 2.5 м, ширина рулона 0.6 м, длина рулона 12 м',
+              setup: () => {
+                mode.value = 'without';
+                roomWidth.value = 6;
+                roomLength.value = 6;
+                wallHeight.value = 2.5;
+                rollWidth.value = 0.6;
+                rollLength.value = 12;
+              },
+              expected: {
+                roomPerimeter: 24,
+                stripsPerRoll: 4,
+                totalStripsNeeded: 40,
+                rollsNeeded: 9
+              }
+            },
+            {
+              description: 'С раппортом, периметр 24 м, высота стены 2.5 м, ширина рулона 0.6 м, длина рулона 12 м, раппорт 70 см, смещение 20 см',
+              setup: () => {
+                mode.value = 'with';
+                roomWidth.value = 6;
+                roomLength.value = 6;
+                wallHeight.value = 2.5;
+                rollWidth.value = 0.6;
+                rollLength.value = 12;
+                rapport.value = 70;
+                offset.value = 20;
+              },
+              expected: {
+                roomPerimeter: 24,
+                stripsPerRoll: 2,
+                totalStripsNeeded: 40,
+                rollsNeeded: 20
+              }
+            },
+            {
+              description: 'Без раппорта, периметр 30 м, высота стены 3 м, ширина рулона 0.5 м, длина рулона 15 м',
+              setup: () => {
+                mode.value = 'without';
+                roomWidth.value = 7.5;
+                roomLength.value = 7.5;
+                wallHeight.value = 3;
+                rollWidth.value = 0.5;
+                rollLength.value = 15;
+              },
+              expected: {
+                roomPerimeter: 30,
+                stripsPerRoll: 5,
+                totalStripsNeeded: 60,
+                rollsNeeded: 12
+              }
+            },
+            {
+              description: 'С раппортом, периметр 30 м, высота стены 3 м, ширина рулона 0.5 м, длина рулона 15 м, раппорт 90 см, смещение 30 см',
+              setup: () => {
+                mode.value = 'with';
+                roomWidth.value = 7.5;
+                roomLength.value = 7.5;
+                wallHeight.value = 3;
+                rollWidth.value = 0.5;
+                rollLength.value = 15;
+                rapport.value = 90;
+                offset.value = 30;
+              },
+              expected: {
+                roomPerimeter: 30,
+                stripsPerRoll: 3,
+                totalStripsNeeded: 60,
+                rollsNeeded: 20
+              }
+            }
+          ];
+
+          testCases.value = tests.map(test => {
+            test.setup();
+            return {
+              description: test.description,
+              expected: test.expected,
+              actual: {
+                roomPerimeter: roomPerimeter.value,
+                stripsPerRoll: stripsPerRoll.value,
+                totalStripsNeeded: totalStripsNeeded.value,
+                rollsNeeded: rollsNeeded.value
+              },
+              passed: JSON.stringify(test.expected) === JSON.stringify({
+                roomPerimeter: roomPerimeter.value,
+                stripsPerRoll: stripsPerRoll.value,
+                totalStripsNeeded: totalStripsNeeded.value,
+                rollsNeeded: rollsNeeded.value
+              })
+            };
+          });
+
+          showTests.value = true;
+        };
+        
+        return {
+          mode,
+          wallHeight,
+          rollWidth,
+          rollLength,
+          rapport,
+          offset,
+          roomWidth,
+          roomLength,
+          roomPerimeter,
+          showResult,
+          stripsPerRoll,
+          totalStripsNeeded,
+          rollsNeeded,
+          calculate,
+          showTests,
+          testCases,
+          runTests
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
